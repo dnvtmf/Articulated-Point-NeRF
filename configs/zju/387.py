@@ -1,7 +1,7 @@
 _base_ = './default.py'
 
 expname = f'387'
-basedir = './logs/zju/6_views'
+basedir = './logs/zju'
 
 data = dict(
     datadir='./data/zju/387/cache_train.pickle',

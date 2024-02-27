@@ -1,6 +1,7 @@
-import torch
-import roma
 import numpy as np
+import roma
+import torch
+
 
 class TransformNet(torch.nn.Module):
     def __init__(self, input_dim, num_components, num_params_per_component, num_layers=3, hidden_dim=256):
@@ -12,7 +13,7 @@ class TransformNet(torch.nn.Module):
         self.register_buffer('rotation_switch_mask', torch.arange(0, num_components).long())
 
         layers = []
-        for i in range(num_layers-1):
+        for i in range(num_layers - 1):
             if i == 0:
                 layers.append(torch.nn.Linear(input_dim, self.hidden_dim))
                 layers.append(torch.nn.ReLU())
@@ -33,18 +34,20 @@ class TransformNet(torch.nn.Module):
             out = out.reshape(b, self.num_components, self.num_params_per_component)
         else:
             out = out.reshape(self.num_components, self.num_params_per_component)
-        
+
         return out
 
+
 class PointWarper(torch.nn.Module):
-    def __init__(self,
-                 t_dim,
-                 canonical_pcd,
-                 joints,
-                 bones,
-                 num_layers=5,
-                 over_parameterized_rot=True,
-                 ):
+    def __init__(
+        self,
+        t_dim,
+        canonical_pcd,
+        joints,
+        bones,
+        num_layers=5,
+        over_parameterized_rot=True,
+    ):
         super().__init__()
         self.t_dim = t_dim
         self.params_per_compoent = 4
@@ -52,13 +55,12 @@ class PointWarper(torch.nn.Module):
         self.num_layers = num_layers
         self.over_parameterized_rot = over_parameterized_rot
         self.init_tree(joints, bones, old=False)
-            
 
-        self.hom_row = torch.tensor([0,0,0,1], dtype=torch.float32)
+        self.hom_row = torch.tensor([0, 0, 0, 1], dtype=torch.float32)
         self.transform_net = TransformNet(t_dim, len(joints) + 1, self.params_per_compoent, num_layers=self.num_layers)
         self.register_buffer('rot_mask', torch.zeros(len(joints), dtype=torch.bool))
         self.register_buffer('sibling_mask', torch.arange(0, len(joints)).long())
-       
+
     def kwargs(self):
         return {
             't_dim': self.t_dim,
@@ -68,7 +70,6 @@ class PointWarper(torch.nn.Module):
         }
 
     def init_tree(self, joints, bones, old=True):
-
         if old:
             self.bones = bones
             self.parent_joint = {b[1]: b[0] for b in bones}
@@ -88,9 +89,12 @@ class PointWarper(torch.nn.Module):
                 parent_indices += [inds[::-1]]
             max_depth = np.max([len(x) for x in parent_indices])
             self.parent_indices = torch.zeros((len(self.bones), max_depth), dtype=torch.long) - 1
-            for i,inds in enumerate(parent_indices):
-                self.parent_indices[i,:len(inds)] = torch.from_numpy(np.array(inds)).to(self.parent_indices.device, dtype=self.parent_indices.dtype)
-            self.parent_joint_ex = torch.from_numpy(np.array([self.parent_joint.get(i, -1) for i in range(len(self.bones)+1)])).to(self.parent_indices.device, dtype=self.parent_indices.dtype)
+            for i, inds in enumerate(parent_indices):
+                self.parent_indices[i, :len(inds)] = torch.from_numpy(np.array(inds)).to(
+                    self.parent_indices.device, dtype=self.parent_indices.dtype)
+            self.parent_joint_ex = torch.from_numpy(
+                np.array([self.parent_joint.get(i, -1) for i in range(len(self.bones) + 1)])).to(
+                self.parent_indices.device, dtype=self.parent_indices.dtype)
         else:
             self.bones = bones
 
@@ -111,9 +115,12 @@ class PointWarper(torch.nn.Module):
                 parent_indices += [inds[::-1]]
             max_depth = np.max([len(x) for x in parent_indices])
             self.parent_indices = torch.zeros((len(parent_indices), max_depth), dtype=torch.long) - 1
-            for i,inds in enumerate(parent_indices):
-                self.parent_indices[i,:len(inds)] = torch.from_numpy(np.array(inds)).to(self.parent_indices.device, dtype=self.parent_indices.dtype)
-            self.parent_joint_ex = torch.from_numpy(np.array([self.parent_joint.get(i, 0) for i in range(len(parent_indices))])).to(self.parent_indices.device, dtype=self.parent_indices.dtype)
+            for i, inds in enumerate(parent_indices):
+                self.parent_indices[i, :len(inds)] = torch.from_numpy(np.array(inds)).to(
+                    self.parent_indices.device, dtype=self.parent_indices.dtype)
+            self.parent_joint_ex = torch.from_numpy(
+                np.array([self.parent_joint.get(i, 0) for i in range(len(parent_indices))])).to(
+                self.parent_indices.device, dtype=self.parent_indices.dtype)
 
     def Rodrigues(self, rvec, theta=None):
         # Neural Volumes
@@ -148,10 +155,9 @@ class PointWarper(torch.nn.Module):
         chain_len = matrix_chain.shape[1]
         if chain_len == 1:
             return matrix_chain
-        sub_a = cls.matrix_chain_product(matrix_chain[:,:chain_len//2])
-        sub_b = cls.matrix_chain_product(matrix_chain[:,chain_len//2:])
+        sub_a = cls.matrix_chain_product(matrix_chain[:, :chain_len // 2])
+        sub_b = cls.matrix_chain_product(matrix_chain[:, chain_len // 2:])
         return sub_a @ sub_b
-
 
     def calc_rec_abs_T_fast(self, R_t: torch.tensor, joints: torch.tensor) -> torch.tensor:
         """
@@ -163,16 +169,17 @@ class PointWarper(torch.nn.Module):
         # self.init_tree(joints, self.bones, old=True)
 
         # Start: Compatibility package.
-        # This is unnecesarily complicated and could be removed.
+        # This is unnecessarily complicated and could be removed.
         joints_old = torch.cat((self.hom_row[None, :3], joints), 0)
         # Align joints with their bones.
         joints_old = joints_old[self.parent_joint_ex + 1]
         # End: Compatibility package.
 
-        M_bones_old = torch.cat((torch.cat((R_t, joints_old[...,None] + R_t @ -joints_old[...,None]), -1), self.hom_row[None,None].repeat(R_t.shape[0],1,1)), -2)
+        M_bones_old = torch.cat((torch.cat((R_t, joints_old[..., None] + R_t @ -joints_old[..., None]), -1),
+                                 self.hom_row[None, None].repeat(R_t.shape[0], 1, 1)), -2)
         M_bones_old = torch.cat((torch.eye(4)[None], M_bones_old), 0)
         M_paths_old = M_bones_old[self.parent_indices + 1]
-        out_old = self.matrix_chain_product(M_paths_old)[:,0]
+        out_old = self.matrix_chain_product(M_paths_old)[:, 0]
 
         #### NEW IMPLEMENTATION ####
 
@@ -198,7 +205,7 @@ class PointWarper(torch.nn.Module):
         shape = rot_params.shape[:2]
         rot_params = rot_params.reshape(torch.mul(*shape), 3)
         _, thetas = self.Rodrigues(rot_params)
-        
+
         return thetas.reshape(shape, 3)
 
     def set_rotation_mask(self, rotations_to_keep):
@@ -210,7 +217,17 @@ class PointWarper(torch.nn.Module):
     def set_sibling_mask(self, sibling_mask):
         self.sibling_mask = sibling_mask.long()
 
-    def forward(self, weights, joints, t=None, rot_params=None, global_t=None, get_frames=False, avg_procrustes=False, get_skeleton=False):
+    def forward(
+        self,
+        weights,
+        joints,
+        t=None,
+        rot_params=None,
+        global_t=None,
+        get_frames=False,
+        avg_procrustes=False,
+        get_skeleton=False
+    ):
         assert (t is None) ^ (rot_params is None)
 
         # Get time-dependent rotation and translation
@@ -228,14 +245,13 @@ class PointWarper(torch.nn.Module):
                 R_t, self.prev_thetas = self.Rodrigues(rot_params)
 
         with torch.profiler.record_function("calc_rec_abs_T"):
-
             R_t = R_t[self.sibling_mask]
             if self.rot_mask is not None:
                 R_t[self.rot_mask] = torch.eye(3)
 
-            self.prev_thetas = self.prev_thetas # [self.sibling_mask]
+            self.prev_thetas = self.prev_thetas  # [self.sibling_mask]
 
-            # Do recusrive bone transformations
+            # Do recursive bone transformations
             bone_Ts = self.calc_rec_abs_T_fast(R_t, joints)
 
         with torch.profiler.record_function("weighted_G_tw"):
@@ -243,25 +259,26 @@ class PointWarper(torch.nn.Module):
             weighted_G_tw = (bone_Ts * weights[:, :, None, None]).sum(dim=1)
 
             if avg_procrustes:
-                weighted_T = weighted_G_tw[:,:3,-1,None]
-                weighted_R = roma.special_procrustes(weighted_G_tw[:,:3,:3])
+                weighted_T = weighted_G_tw[:, :3, -1, None]
+                weighted_R = roma.special_procrustes(weighted_G_tw[:, :3, :3])
 
                 weighted_G_tw = torch.cat((weighted_R, weighted_T), -1)
-                weighted_G_tw = torch.cat((weighted_G_tw, self.hom_row[None,None].repeat(weighted_G_tw.shape[0], 1, 1)), -2)
-            
+                weighted_G_tw = torch.cat((
+                    weighted_G_tw, self.hom_row[None, None].repeat(weighted_G_tw.shape[0], 1, 1)), -2)
+
             # Transform points
             xyz = self.canonical_pcd
             xyzh = torch.concat([xyz, torch.ones((len(xyz), 1))], axis=-1)
-            xyzh = torch.bmm(weighted_G_tw, xyzh.unsqueeze(-1)).squeeze(-1) 
-            xyz = xyzh[:,:3]
+            xyzh = torch.bmm(weighted_G_tw, xyzh.unsqueeze(-1)).squeeze(-1)
+            xyz = xyzh[:, :3]
 
             jointsh = torch.concat([joints, torch.ones((len(joints), 1))], axis=-1)
-            jointsh = torch.bmm(bone_Ts, jointsh.unsqueeze(-1)).squeeze(-1) 
-            joints_warped_rel = jointsh[:,:3]
+            jointsh = torch.bmm(bone_Ts, jointsh.unsqueeze(-1)).squeeze(-1)
+            joints_warped_rel = jointsh[:, :3]
 
             if global_t is None:
                 global_t = torch.zeros(3, dtype=torch.float32, device=xyz.device)
-                
+
             if global_t is not None:
                 xyz = xyz + global_t
 

@@ -16,7 +16,8 @@ def load_data(args, cfg, load_test_val=False, bg_col=1):
     embeddings = None
 
     if args.dataset_type == 'dnerf':
-        images, poses, times, render_poses, render_times, hwf, i_split, img_to_cam, masks = load_dnerf_data(args.datadir, args.half_res, args.testskip)
+        images, poses, times, render_poses, render_times, hwf, i_split, img_to_cam, masks = load_dnerf_data(
+            args.datadir, args.half_res, args.testskip, load_test_val)
         print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
         i_train, i_val, i_test = i_split
         near = 2.

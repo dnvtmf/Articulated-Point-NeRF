@@ -115,10 +115,10 @@ def load_dnerf_data(basedir, half_res=True, testskip=1, load_test_val=False):
         times = times[i_split[0]]
     else:
         i_split = [np.arange(counts[i], counts[i+1]) for i in range(3)]
-        i_split[0] = []
-        all_imgs = all_imgs[1:]
-        all_poses = all_poses[1:]
-        all_times = all_times[1:]
+        # i_split[0] = []
+        # all_imgs = all_imgs[1:]
+        # all_poses = all_poses[1:]
+        # all_times = all_times[1:]
 
         imgs =  np.concatenate(all_imgs, 0)
         poses = np.concatenate(all_poses, 0)

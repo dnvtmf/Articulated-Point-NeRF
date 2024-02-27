@@ -10,7 +10,8 @@ import math
 import pickle
 
 import imageio
-import mmcv
+# import mmcv
+import mmengine
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -1153,6 +1154,7 @@ def export_point_cloud(model, data_dict, path, render_viewpoints_kwargs, canonic
         stepsize=stepsize, time_sel=t, viewdir=viewdir, threshold=threshold, sampling_freq=freq, N_batch=2**21, alpha_xyz_only=True)
     mask = preprocess_volume(alpha_volume.cpu().numpy(), threshold, sigma=sigma_pcd)
     points = grid_xyz[mask]
+    print(grid_xyz.shape, mask.shape)
 
     if len(points) > canonical_pcd_num:
         freq_up = freq
@@ -1168,7 +1170,9 @@ def export_point_cloud(model, data_dict, path, render_viewpoints_kwargs, canonic
         _, _, _, _, feat, raw_feat, grid_xyz, alpha_volume = model.get_grid_as_point_cloud(
             stepsize=stepsize, time_sel=t, viewdir=viewdir, threshold=threshold, sampling_freq=freq, N_batch=2**21, alpha_xyz_only=True)
         mask = preprocess_volume(alpha_volume.cpu().numpy(), threshold, sigma=sigma_pcd)
-        points = grid_xyz[mask]
+
+        print(grid_xyz.shape, mask.shape)
+        points = grid_xyz[mask, :]
         
         if len(points) > canonical_pcd_num:
             freq_up = freq
@@ -1181,7 +1185,9 @@ def export_point_cloud(model, data_dict, path, render_viewpoints_kwargs, canonic
         freq = (freq_up + freq_low) / 2
         _, _, _, _, feat, raw_feat, grid_xyz, alpha_volume = model.get_grid_as_point_cloud(stepsize=stepsize, time_sel=t, viewdir=viewdir, threshold=threshold, sampling_freq=freq, N_batch=2**21, alpha_xyz_only=True)
         mask = preprocess_volume(alpha_volume.cpu().numpy(), threshold, sigma=sigma_pcd)
-        points = grid_xyz[mask]
+
+        print(grid_xyz.shape, mask.shape)
+        points = grid_xyz[mask, :]
         print(f"Canonical sampling freq: {freq}, num points: {len(points)}")
         if len(points) > canonical_pcd_num:
             freq_up = freq
@@ -1189,6 +1195,7 @@ def export_point_cloud(model, data_dict, path, render_viewpoints_kwargs, canonic
             freq_low = freq
         else:
             break
+    # exit()
         
     points, alphas, rgbs, feat, raw_feat, binary_volume, grid_xyz, _ = model.get_grid_as_point_cloud(
         stepsize=stepsize, time_sel=t, viewdir=viewdir, threshold=threshold, sampling_freq=freq, N_batch=2**21, alpha_xyz_only=False, grid_xyz=grid_xyz[mask,:])
@@ -1243,7 +1250,7 @@ if __name__=='__main__':
     # load setup
     parser = config_parser()
     args = parser.parse_args()
-    cfg = mmcv.Config.fromfile(args.config)
+    cfg = mmengine.Config.fromfile(args.config)
     # init enviroment
     if torch.cuda.is_available():
         torch.set_default_tensor_type('torch.cuda.FloatTensor')
