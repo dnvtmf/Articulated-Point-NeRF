@@ -32,6 +32,10 @@ do
     then
       screen -S gpu${gpu_id} -p 0 -X stuff \
         "python run.py --config configs/nerf/${scene}.py --i_print 1000 --render_video --render_pcd ^M"
+    fi
+    screen -S gpu${gpu_id} -p 0 -X stuff "python test.py --config configs/nerf/${scene}.py --num_fps=200 ^M"
+done
+
 #    screen -S gpu${gpu_id} -p 0 -X stuff \
 #      "python run.py --config configs/nerf/${scene}.py --i_print 1000 --render_video --render_only ^M"
 #    screen -S gpu${gpu_id} -p 0 -X stuff \
@@ -42,6 +46,3 @@ do
 #      "python run.py --config configs/nerf/${scene}.py --i_print 1000 --visualise_canonical --render_pcd --render_only --degree_threshold 30 ^M"
 #    screen -S gpu${gpu_id} -p 0 -X stuff \
 #      "python run.py --config configs/nerf/${scene}.py --i_print 1000 --repose_pcd --render_only --render_pcd --degree_threshold 30 ^M"
-  fi
-  screen -S gpu${gpu_id} -p 0 -X stuff "python test.py --config configs/nerf/${scene}.py --num_fps=1000 ^M"
-done

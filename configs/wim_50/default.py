@@ -19,7 +19,7 @@ data = dict(
     load_depths=False,            # load depth
     use_bg_points=False,
     add_cam=False,
-    video_len=300,
+    video_len=50,
 )
 
 ''' Template of training options

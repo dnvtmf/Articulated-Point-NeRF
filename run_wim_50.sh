@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-scenes=(377 386 387 392 393)
-gpus=(7)
+scenes=(atlas baxter cassie iiwa nao pandas spot)
+gpus=(1)
 args=()
 test_args=()
 num_scenes=${#scenes[@]}
 num_gpus=${#gpus[@]}
-our_dir=zju_new
 echo "There are ${num_gpus} gpus and ${num_scenes} scenes"
 
 for (( i = 0;  i < ${num_gpus}; ++i ))
@@ -30,15 +29,13 @@ do
     scene=${scenes[i]}
     echo "use gpu${gpu_id} on scene: ${scene} "
     screen -S gpu${gpu_id} -p 0 -X stuff "^M"
-    if [ ! -e logs/${our_dir}/${scene}/temporalpoints_last.tar ]
+    if [ ! -e logs/wim_50/${scene}/temporalpoints_last.tar ]
     then
-      echo "train zju ${scene}"
       screen -S gpu${gpu_id} -p 0 -X stuff \
-        "python run.py --config configs/${our_dir}/${scene}.py --i_print 1000 --render_video --render_pcd ^M"
+        "python run.py --config configs/wim_50/${scene}.py --i_print 1000 --render_video --render_pcd ^M"
     fi
-    if [ ! -e logs/${our_dir}/${scene}/test_temporalpoints_last/results.txt ]
+    if [ ! -e logs/wim_50/${scene}/test_temporalpoints_last/results.txt ]
     then
-      echo "test zju ${scene}"
-      screen -S gpu${gpu_id} -p 0 -X stuff "python test.py --config configs/${our_dir}/${scene}.py --num_fps=200 ^M"
+      screen -S gpu${gpu_id} -p 0 -X stuff "python test.py --config configs/wim_50/${scene}.py --num_fps=-1 ^M"
     fi
 done

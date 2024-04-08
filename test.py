@@ -151,12 +151,21 @@ def render_viewpoints(
         rgbs.append(rgb)
         depths.append(depth)
 
+        # plt.subplot(121)
+        # plt.imshow(rgb)
+        # plt.subplot(122)
+        # plt.imshow(gt_imgs[i])
+        # plt.show()
+        # exit()
         if gt_imgs is not None and render_factor == 0:
-            p = -10. * np.log10(np.mean(np.square(rgb - gt_imgs[i])))
+            gt_img = gt_imgs[i]
+            if gt_img.dtype == np.uint8:
+                gt_img = gt_img.astype(np.float32) / 255.
+            p = -10. * np.log10(np.mean(np.square(rgb - gt_img)))
             psnrs.append(p)
-            ssims.append(utils.rgb_ssim(rgb, gt_imgs[i], max_val=1))
-            lpips_alex.append(utils.rgb_lpips(rgb, gt_imgs[i], net_name='alex', device=c2w.device))
-            lpips_vgg.append(utils.rgb_lpips(rgb, gt_imgs[i], net_name='vgg', device=c2w.device))
+            ssims.append(utils.rgb_ssim(rgb, gt_img, max_val=1))
+            lpips_alex.append(utils.rgb_lpips(rgb, gt_img, net_name='alex', device=c2w.device))
+            lpips_vgg.append(utils.rgb_lpips(rgb, gt_img, net_name='vgg', device=c2w.device))
 
     if len(psnrs):
         # create text file and write results into a single file
@@ -173,16 +182,17 @@ def render_viewpoints(
         print('Testing lpips (alex)', np.mean(lpips_alex), '(avg)')
 
     if savedir is not None:
-        print(f'Writing images to {savedir}')
+        print(f'Writing images to {savedir}/images')
         create_empty_dir(os.path.join(savedir, 'images'))
         for i in trange(len(rgbs)):
             rgb8 = utils.to8b(rgbs[i])
             filename = os.path.join(savedir, 'images', '{:03d}.png'.format(i))
             imageio.imwrite(filename, rgb8)
 
+        print(f'Writing images to {savedir}/gt')
         create_empty_dir(os.path.join(savedir, 'gt'))
         for i in trange(len(gt_imgs)):
-            rgb8 = utils.to8b(gt_imgs[i])
+            rgb8 = utils.to8b(gt_imgs[i]) if gt_imgs[i].dtype != np.uint8 else gt_imgs[i]
             filename = os.path.join(savedir, 'gt', '{:03d}.png'.format(i))
             imageio.imwrite(filename, rgb8)
 
@@ -209,7 +219,7 @@ def render_viewpoints(
 
         weights[i] = img
     if savedir is not None:
-        print(f'Writing images to {savedir}')
+        print(f'Writing images to {savedir}/bone')
         create_empty_dir(os.path.join(savedir, 'bone'))
         for i in trange(len(weights)):
             rgb8 = utils.to8b(weights[i])
@@ -439,9 +449,14 @@ def test():
             print(k, v.shape)
         else:
             print(k, type(v))
+    assert len(data_dict['poses']) == len(data_dict['Ks'])
+    assert len(data_dict['HW']) == len(data_dict['times']) == len(data_dict['images'])
+    assert 0 <= data_dict['i_test'].min() and data_dict['i_test'].max() < len(data_dict['images'])
+    assert 0 <= data_dict['img_to_cam'].min() and data_dict['img_to_cam'].max() < len(data_dict['poses'])
     # return
+
     render_viewpoints(
-        render_poses=data_dict['poses'][data_dict['i_test']],
+        render_poses=data_dict['poses'][data_dict['img_to_cam'][data_dict['i_test']]],
         HW=data_dict['HW'][data_dict['i_test']],
         Ks=data_dict['Ks'][data_dict['img_to_cam'][data_dict['i_test']]],
         gt_imgs=[data_dict['images'][i].cpu().numpy() for i in data_dict['i_test']],
@@ -451,7 +466,7 @@ def test():
     )
 
     render_speed(
-        render_poses=data_dict['poses'][data_dict['i_test']],
+        render_poses=data_dict['poses'][data_dict['img_to_cam'][data_dict['i_test']]],
         HW=data_dict['HW'][data_dict['i_test']],
         Ks=data_dict['Ks'][data_dict['img_to_cam'][data_dict['i_test']]],
         savedir=testsavedir,

@@ -34,5 +34,5 @@ do
       screen -S gpu${gpu_id} -p 0 -X stuff \
         "python run.py --config configs/wim/${scene}.py --i_print 1000 --render_video --render_pcd ^M"
     fi
-    screen -S gpu${gpu_id} -p 0 -X stuff "python test.py --config configs/wim/${scene}.py --num_fps=1000 ^M"
+    screen -S gpu${gpu_id} -p 0 -X stuff "python test.py --config configs/wim/${scene}.py --num_fps=-1 ^M"
 done

@@ -1275,7 +1275,7 @@ if __name__=='__main__':
             stages = [1,2]
         train(args, cfg, read_path, save_path, data_dict = data_dict, stages=stages)
 
-    # load model for rendring
+    # load model for rendering
     if args.render_test or args.render_video or args.repose_pcd or args.visualise_canonical:
         cfg.basedir += args.basedir_append_suffix
         if not args.render_pcd:

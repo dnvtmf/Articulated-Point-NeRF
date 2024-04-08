@@ -29,7 +29,7 @@ def load_data(args, cfg, load_test_val=False, bg_col=1):
                 images = images[...,:3]*images[...,-1:]
 
     elif args.dataset_type == 'wim':
-        images, poses, K, times, render_poses, render_times, render_intrinsics, hw, i_split, img_to_cam, masks = load_robot(args.datadir, skip_images=args.skip_images, test=load_test_val)
+        images, poses, K, times, render_poses, render_times, render_intrinsics, hw, i_split, img_to_cam, masks = load_robot(args.datadir,video_len=cfg.data.video_len, skip_images=args.skip_images, test=load_test_val)
         print('Loaded robot', images.shape, render_poses.shape, render_intrinsics.shape, hw, args.datadir)
         i_train, i_val, i_test = i_split
 

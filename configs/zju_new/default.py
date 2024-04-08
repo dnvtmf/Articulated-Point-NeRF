@@ -19,13 +19,12 @@ data = dict(
     load_depths=False,            # load depth
     use_bg_points=False,
     add_cam=False,
-    video_len=300,
 )
 
 ''' Template of training options
 '''
 train_config = dict(
-    bg_col=1,
+    bg_col=0,
     N_iters=40000,                # number of optimization steps
     N_rand=4096,                  # batch size (number of random rays per optimization step)
     lrate_feature=8e-2,           # lr of  voxel grid
@@ -47,8 +46,8 @@ train_config = dict(
     weight_tv_feature=0,
     pg_scale=[2000, 4000, 6000],
     weight_distortion=5e-2,
-    weight_mask_loss=0,
-    skip_zero_grad_fields=['feature']
+    weight_mask_loss=5e-2,
+    skip_zero_grad_fields=['feature'],
 )
 
 ''' Template of model and rendering options
@@ -65,16 +64,15 @@ model_and_render = dict(
     stepsize=0.5,                 # sampling stepsize in volume rendering
     world_bound_scale=1.05,
     no_view_dir=False,
-    pre_train_t_num=10,
 )
 
-N_iters = 160000
-after_train_iter = N_iters - (N_iters // 10)
-after_train_iter = 20000000000
+N_iters = 160000 * 2#  160000
+full_t_iter= N_iters // 2
 pcd_train_config = dict(
-    bg_col=1,
+    bg_col=0,
     pose_one_each=False,
     N_iters=N_iters,
+    weight_start_iter=full_t_iter,
     full_t_iter=N_iters // 2,
     lrate_decay=N_iters // 1000,
     # TiNeuVox
@@ -111,7 +109,7 @@ pcd_train_config = dict(
     use_direct_loss=False,
     ray_sampler='random',
     embedding='full',
-    pose_embedding_dim=0,
+    pose_embedding_dim=64,
     N_rand=4096 * 2
 )
 
@@ -121,7 +119,7 @@ pcd_model_and_render = dict(
     fast_color_thres=1e-4,
     bone_length=10.,
     pcd_density_threshold=0.05,
-    skeleton_density_threshold=0.05,
+    skeleton_density_threshold=0.1,
     canonical_pcd_num=1e+4,
 )
 
